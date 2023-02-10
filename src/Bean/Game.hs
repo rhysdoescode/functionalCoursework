@@ -18,9 +18,18 @@ import Bean.Types
   Ex. 1: Write an expression representing the starting position for the game.
 
   [JUSTIFY]
+  I decided to write the lists using the 'syntactic sugar' method, rather than
+  using the cons operator, as this makes the code much more readable, without sacrificing speed,
+  because the syntatic sugar will be converted into cons operators at compile time.
+
 -}
 startingPos :: Board
-startingPos = error "Not implemented"
+startingPos = 
+  [[Empty, Red Cow, Red Cow, Empty],
+   [Red Bean, Red Bean, Red Bean, Red Bean],
+   [Blue Bean, Blue Bean, Blue Bean, Blue Bean],
+   [Empty, Blue Cow, Blue Cow, Empty]
+  ]
 
 
 {-|
@@ -29,6 +38,8 @@ startingPos = error "Not implemented"
   recursion and pattern matching in your definition.
 
   [JUSTIFY]
+
+  RED - BLUE
 -}
 balance :: Board -> Int
 balance = error "Not implemented"
@@ -44,7 +55,12 @@ balance = error "Not implemented"
   [JUSTIFY]
 -}
 instance {-# OVERLAPS #-} Show Board where
-  show = error "Not implemented"
+  {- show b = concat [ show ++ "\n" | p <- (concat b) ]  prints every element with a new line -}
+  show b  = []
+ 
+
+ 
+  
 
 instance Eq PieceType where
   (==) = error "Not implemented"
