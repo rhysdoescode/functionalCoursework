@@ -9,9 +9,12 @@ module Bean.Game where
 -- Before starting on this file, ensure that you have read the specification IN
 -- ITS ENTIRETY and that you understand everything that is required from a good
 -- solution.
+
+-- Got idea to use inetercalate function for Ex3 https://stackoverflow.com/questions/13846870/using-show-with-a-list-of-lists-in-haskell
 --------------------------------------------------------------------------------
 
 import Bean.Types
+import Data.List
 
 
 {-| 
@@ -50,16 +53,22 @@ balance = error "Not implemented"
   The rendered version should be exactly as it appears in the specification.
   
   Also implement an 'Eq' instance for 'Piece' and for 'PieceType'.
-  You should NOT derive these automatically.
+  You should NOT derive these automatically. 
+
+  TODO: USE GHCI or WHATEVER TO SEE WHAT IS HAPPENING
 
   [JUSTIFY]
 -}
 instance {-# OVERLAPS #-} Show Board where
-  {- show b = concat [ show ++ "\n" | p <- (concat b) ]  prints every element with a new line -}
-  show b  = []
- 
+  {-show b = map (\p -> show p) (concat (intersperse ["\n"] b))-}
+  {-show b = map (\p -> (show p :: Piece)) (concat b)-}
+  show :: Board -> String
+  {-show b = show (concat b)- WORKS-}
+  {-show b = concat [(concat [show p | p <- r]) ++ "\n" | r <- b]-} 
+  show b = concat (intersperse "\n" [(concat [show p | p <- r]) | r <- b])
 
- 
+  
+
   
 
 instance Eq PieceType where
