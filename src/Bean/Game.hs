@@ -10,7 +10,7 @@ module Bean.Game where
 -- ITS ENTIRETY and that you understand everything that is required from a good
 -- solution.
 
--- Got idea to use inetercalate function for Ex3 https://stackoverflow.com/questions/13846870/using-show-with-a-list-of-lists-in-haskell
+-- Got idea to use intercalate function for Ex3 https://stackoverflow.com/questions/13846870/using-show-with-a-list-of-lists-in-haskell
 --------------------------------------------------------------------------------
 
 import Bean.Types
@@ -55,28 +55,36 @@ balance = error "Not implemented"
   Also implement an 'Eq' instance for 'Piece' and for 'PieceType'.
   You should NOT derive these automatically. 
 
-  TODO: USE GHCI or WHATEVER TO SEE WHAT IS HAPPENING
-
   [JUSTIFY]
+  I made use of the intercalate function from the the Data.List module function in order to add the 
+  \n character between rows of the board for the show function (so each row gets printed to a new line). 
+  This was needed to avoid the addition of a newline at the end - which
+  happened in my first attempt using '++' to add a newline after every row.
+  I decided to use list comprehensions here instead of the 'map' function, as this implementation
+  is much more readable than the alternative of 'show b = intercalate "\n" (map (\r -> concat(map (\p -> show p) r)) b)' 
+  in my opinion.
+
+  For the Eq instances of Piece and PieceType, I just manually defined the cases where the two values were equal
+  (and the '==' operator should return True), and used the '_' wildcard keyword to pattern match all other possible combinations as 
+  False, to avoid having to write all the other instances which should evalaute to False.
 -}
+
 instance {-# OVERLAPS #-} Show Board where
-  {-show b = map (\p -> show p) (concat (intersperse ["\n"] b))-}
-  {-show b = map (\p -> (show p :: Piece)) (concat b)-}
-  show :: Board -> String
-  {-show b = show (concat b)- WORKS-}
-  {-show b = concat [(concat [show p | p <- r]) ++ "\n" | r <- b]-} 
-  show b = concat (intersperse "\n" [(concat [show p | p <- r]) | r <- b])
+  show b = intercalate "\n" [ (concat [ show p | p <- r ]) | r <- b ]
 
-  
-
-  
 
 instance Eq PieceType where
-  (==) = error "Not implemented"
+  Cow == Cow = True
+  Bean == Bean = True
+  _ == _ = False
 
 instance Eq Piece where
-  (==) = error "Not implemented"
-
+  Red Cow == Red Cow = True
+  Red Bean == Red Bean = True
+  Blue Cow == Blue Cow = True
+  Blue Bean == Blue Bean = True
+  Empty == Empty = True
+  _ == _ = False
 
 {-| 
   Ex. 4: Implement a function that gets a piece at a coordinate. 
@@ -84,9 +92,21 @@ instance Eq Piece where
   appropriate piece (or Empty), wrapped in a Just.
 
   [JUSTIFY]
+  I used guards here to return the appropiate output - pattern matching/case statements wouldn't
+  have worked as we need to check a predicate of the input, not for specific inputs, and I 
+  think guards are easier to read than if/else statements in Haskell. 
+  
+  To check for the piece in a specific Co-ordinate, I ended up using the !! in the Data.List module.
+  The drawback of the operator being a partial function won't be an issue here, as if the co-ords
+  are out of scope, the function will have returned Nothing - meaning the !! operator will
+  be called for only values it is defined for (values that aren't bigger than the size of the
+  board).
+  
 -}
 getPiece :: Board -> Coord -> Maybe Piece
-getPiece = error "Not implemented"
+getPiece b (x, y) 
+  | x < 0 || x > 3 || y < 0 || y > 3         = Nothing
+  | otherwise                                = Just ((b !! y) !! x)
 
 
 {-| 
@@ -95,7 +115,7 @@ getPiece = error "Not implemented"
   [JUSTIFY]
 -}
 validCowMoves :: Board -> Coord -> [Coord]
-validCowMoves = error "Not implemented"
+validCowMoves b (x, y) = [(x', y') | x' <- [x + 1, x - 1], y' <- [y + 1, y - 1],  getPiece b (x', y') == Just Empty]
 
 
 {-| 
