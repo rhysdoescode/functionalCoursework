@@ -19,6 +19,7 @@ data Piece = Empty | Red PieceType | Blue PieceType
 
 -- | The corresponding player is either Red or Blue.
 data Player = RedPlayer | BluePlayer
+      deriving Eq
 
 -- | There are two pieces: Beans and Cows.
 data PieceType
@@ -43,5 +44,6 @@ instance Show Piece where
   show (Blue pt) = "\27[34m" ++ map toLower (show pt) ++ "\27[0m"
 
 instance Show Player where
+  
   show RedPlayer = "\27[31mRed\27[0m player"
   show BluePlayer = "\27[34mBlue\27[0m player"

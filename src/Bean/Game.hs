@@ -98,7 +98,7 @@ instance Eq Piece where
   
   To check for the piece in a specific Co-ordinate, I ended up using the !! in the Data.List module.
   The drawback of the operator being a partial function won't be an issue here, as if the co-ords
-  are out of scope, the function will have returned Nothing - meaning the !! operator will
+  are out of scope, the function will have returned Nothing earlier - meaning the !! operator will
   be called for only values it is defined for (values that aren't bigger than the size of the
   board).
   
@@ -113,9 +113,19 @@ getPiece b (x, y)
   Ex. 5: Return the valid moves that a cow in position (x,y) would have.
 
   [JUSTIFY]
+  I used a list comprehension to build a list of valid cow moves, with it
+  taking moves from a list defined by calling a new 'possibleMoves' function, but only
+  if the move would move the cow into a blank space.
+
+  I could have used a filter function here - e.g. 'validCowMoves b (x, y) = filter (\(x, y) -> getPiece b (x, y) == Just Empty) (possibleMoves (x, y))' -
+  but I found the list comprhension was clearer to read in my opinion.
 -}
+
+possibleMoves :: Coord -> [Coord]
+possibleMoves (x, y) = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+
 validCowMoves :: Board -> Coord -> [Coord]
-validCowMoves b (x, y) = [(x', y') | x' <- [x + 1, x - 1], y' <- [y + 1, y - 1],  getPiece b (x', y') == Just Empty]
+validCowMoves b (x, y) = [(x', y') | (x', y') <- possibleMoves (x, y),  getPiece b (x', y') == Just Empty]
 
 
 {-| 
@@ -123,8 +133,18 @@ validCowMoves b (x, y) = [(x', y') | x' <- [x + 1, x - 1], y' <- [y + 1, y - 1],
 
   [JUSTIFY]
 -}
+
+
+
+beanMoveIsValid :: Maybe Piece -> Player -> Bool
+beanMoveIsValid m p
+  | m == Just Empty                           = True
+  | p == RedPlayer && m == Just (Blue Bean)     = True
+  | p == BluePlayer && m == Just (Red Bean)     = True
+  | otherwise                                 = False
+
 validBeanMoves :: Board -> Player -> Coord -> [Coord]
-validBeanMoves = error "Not implemented"
+validBeanMoves b p (x, y) = [(x', y') | (x', y') <- possibleMoves (x, y), beanMoveIsValid ( getPiece b (x', y')) p]
 
 
 {-| 
