@@ -220,8 +220,8 @@ makeMove b (x1, y1) (x2, y2)
 
   To check if the board had any repeated positions, I made a 'repeatedPosition' function, which
   in effect uses recursion to check the list one element at a time to see if any elements repeat twice, starting
-  from the first item in the list. The function makes use of the 'elem' function to see if the board
-  exists in the list after the first instance of the board is removed.
+  from the first item in the list - if one is found, it returns true, but if the whole list is searched and no repeating baords are found, it reutrns false. 
+  The function makes use of the 'elem' function to see if another instance of the same board exists in the list after the first instance of the board is removed.
 
   The function is fairly efficient, as it immediatly returns a True value when a repeating board is
   found - while other implementations may always check the entire list before returning a value. (Although
@@ -249,11 +249,18 @@ gameIsDrawn b
   is, determine whether the game is won by the opponent.
 
   [JUSTIFY]
-  
 
 -}
+
+pieceIsBlueBlockedCow :: Board -> Coord -> Bool
+pieceIsBlueBlockedCow b (x, y) = getPiece b (x, y) == Just (Blue Cow) && length (validCowMoves b (x, y)) == 0
+  
+pieceIsRedBlockedCow :: Board -> Coord -> Bool
+pieceIsRedBlockedCow b (x, y) = getPiece b (x, y) == Just (Red Cow) && length (validCowMoves b (x, y)) == 0
+
 gameIsWon :: Board -> Player -> Bool
-gameIsWon = error "Not implemented"
+gameIsWon b BluePlayer = or [ pieceIsBlueBlockedCow b (x, y) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3] ]
+gameIsWon b RedPlayer = or [ pieceIsRedBlockedCow b (x, y) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3] ]
 
 
 {-| 
