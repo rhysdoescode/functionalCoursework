@@ -11,6 +11,8 @@ module Bean.Game where
 -- solution.
 
 -- Got idea to use intercalate function for Ex3 https://stackoverflow.com/questions/13846870/using-show-with-a-list-of-lists-in-haskell
+-- Got idea to use 'take' and 'drop' functions to make a new list with one element changed for Ex7: https://stackoverflow.com/questions/15530511/how-to-set-value-in-nth-element-in-a-haskell-list
+-- Learned how to use 'maybe' funcion to pull out a value from a maybe return type for Ex8: https://stackoverflow.com/questions/28706843/getting-a-value-from-maybe-a-return-type-in-haskell
 --------------------------------------------------------------------------------
 
 import Bean.Types
@@ -132,28 +134,44 @@ validCowMoves b (x, y) = [(x', y') | (x', y') <- possibleMoves (x, y),  getPiece
   Ex. 6: Return the valid moves for a bean on the given team in position c.
 
   [JUSTIFY]
+  Similar to the previous exercise, I used a list comprehension to make the list of validBeanMoves.
+  I decided to split off the functionality of the guard into its own function (beanMoveIsValid), which uses
+  guards to determine if the move is acutally valid, before return a boolean result -
+  to avoid the problem of having one very long line of code inside the list comprehension. 
+
 -}
-
-
 
 beanMoveIsValid :: Maybe Piece -> Player -> Bool
 beanMoveIsValid m p
-  | m == Just Empty                           = True
+  | m == Just Empty                             = True
   | p == RedPlayer && m == Just (Blue Bean)     = True
   | p == BluePlayer && m == Just (Red Bean)     = True
-  | otherwise                                 = False
+  | otherwise                                   = False
 
 validBeanMoves :: Board -> Player -> Coord -> [Coord]
-validBeanMoves b p (x, y) = [(x', y') | (x', y') <- possibleMoves (x, y), beanMoveIsValid ( getPiece b (x', y')) p]
+validBeanMoves b p (x, y) = [(x', y') | (x', y') <- possibleMoves (x, y), beanMoveIsValid (getPiece b (x', y')) p]
 
 
 {-| 
   Ex. 7: Set a given (valid) coordinate to have a given piece (or Empty).
 
   [JUSTIFY]
+  As in haskell lists are immutable, I needed to create an entirely new board, with the co-ord
+  specified changed. To do this, I used the 'take' and 'drop' methods to extract the rows that aren't being
+  changed, and then made a new function 'changeRow' that changes the specified row - before combining the 
+  rows into one list using the '++' operator.
+
+  I used the '!!' despite it being partial, because the exercise text above specifies that the given 
+  co-ordinate is valid, meaning the operator won't be given any values it isn't defined for.
 -}
+
+changeRow :: Int -> [Piece] -> Piece -> [[Piece]]
+changeRow x r p = [(take x r) ++ [p] ++ (drop (x+1) r)]
+
 setCoord :: Board -> Coord -> Piece -> Board
-setCoord = error "Not implemented"
+setCoord b (x, y) p = take y b ++ changeRow x (b !! y) p ++ drop (y+1) b
+
+
 
 
 {-| 
@@ -162,10 +180,32 @@ setCoord = error "Not implemented"
   there was no piece in the first position, return Nothing instead.
 
   [JUSTIFY]
--}
-makeMove :: Board -> Coord -> Coord -> Maybe Board
-makeMove = error "Not implemented"
+  For this function, I decided to use guards for deciding between the different return values, which is 
+  most appropiate as we are checking the predicates of lots of different statements (e.g. if the statement 'the piece is a blue bean
+  and the proposed move is valid' is true). I could have used if statements here but I think guards are easier to read.
 
+  I split off some parts into their own functions, to make the code more readable - I made a 'movePiece' function
+  which updates the board, calling the setCoord function once to make the old location of the piece empty, and then again
+  on using the returned board as a parameter from the previous setCoord call to update the location of the moved peice. 
+
+  I made use of the 'where' keyword here to store a local variable 'p' - this will avoid repeated calls to getPiece, which will
+  make the code run faster (and also make it more concise).
+-}
+
+pieceIsCow :: Maybe Piece -> Bool
+pieceIsCow p = p == Just (Red Cow) || p == Just (Blue Cow)
+
+movePiece :: Board -> Coord -> Coord -> Maybe Piece -> Maybe Board
+movePiece b (x1, y1) (x2, y2) p = Just (setCoord (setCoord b (x1, y1) Empty) (x2, y2) (maybe Empty id p))
+
+makeMove :: Board -> Coord -> Coord -> Maybe Board
+makeMove b (x1, y1) (x2, y2) 
+  | p == Just (Red Bean) && (x2, y2) `elem` validBeanMoves b RedPlayer (x1, y1)      = movePiece b (x1, y1) (x2, y2) p
+  | p == Just (Blue Bean) && (x2, y2) `elem` validBeanMoves b BluePlayer (x1, y1)    = movePiece b (x1, y1) (x2, y2) p
+  | pieceIsCow p && (x2, y2) `elem` validCowMoves b (x1, y1)                         = movePiece b (x1, y1) (x2, y2) p
+  | otherwise                                                                        = Nothing
+  where p = getPiece b (x1, y1) 
+        
 
 {-| 
   Ex. 9: The game is drawn if the same setup is repeated, or after the fiftieth 
