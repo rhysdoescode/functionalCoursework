@@ -42,7 +42,23 @@ startingPos =
   recursion and pattern matching in your definition.
 
   [JUSTIFY]
-  To implement this function, 
+  These two functions  needed to iterates through every Piece in the list - 
+  if the piece is a Red Bean, the balance is incremented; if the piece is a blue bean,
+  the balance is decremented - once every item in the list is evaluated, the end result returned
+  is the same as the difference between all the red peices and blue peices.
+
+  Because he 'balance' function only took in a Board parameter, which would mean revursive steps wouldn't be able to access a 'balance' variable
+  from the previous step - I made a new function called countBeans, which took in and returned a pair - 
+  a concatinated version of the board - to make iteration through the list easier - and the running balance total.
+
+  Pattern matching is used to update the balance varible differently depending on what the piece is - I could have
+  used 'case' statements, but this looks more readable in my opinion - and to check for the 'base case', when the
+  list is empty. Each recursive call to countBeans is on a smaller and smaller list, so the function will
+  always eventually become empty. Therefore, it will always return to the base case in a finite amount of time.
+
+  I made use of the 'snd' function to access the second value of the returned tuple - so the balance function
+  would return only the balance integer, as required.
+
 -}
 balance :: Board -> Int
 balance b = snd (countBeans ((concat b), 0))
@@ -102,8 +118,11 @@ instance Eq Piece where
   have worked as we need to check a predicate of the input, not for specific inputs, and I 
   think guards are easier to read than if/else statements in Haskell. 
   
-  To check for the piece in a specific Co-ordinate, I ended up using the !! in the Data.List module.
-  The drawback of the operator being a partial function won't be an issue here, as if the co-ords
+  To check for the piece in a specific Co-ordinate, I ended up using the !! in the Data.List module,
+  which was neccessary because this program involves lots of working with lists (e.g. the whole
+  board is a list), so getting access to functions which work with lists is very useful.
+
+  The drawback of the operator '!!' being a partial function won't be an issue here, as if the co-ords
   are out of scope, the function will have returned Nothing earlier - meaning the !! operator will
   be called for only values it is defined for (values that aren't bigger than the size of the
   board).
@@ -286,4 +305,42 @@ gameIsWon b RedPlayer = or [ pieceIsRedBlockedCow b (x, y) | x <- [0, 1, 2, 3], 
   [JUSTIFY]
 -}
 nextMove :: [Board] -> Player -> (Coord, Coord)
-nextMove = error "Not implemented"
+nextMove b p = case p of
+  BluePlayer -> nextMoveBlue b h
+  RedPlayer -> ((1, 1), (1, 2))
+  where
+    h = head b
+
+nextMoveBlue :: [Board] -> Board -> (Coord, Coord)
+nextMoveBlue b h 
+  {- If blue has more beans, pick whichever bean is furthest back and try to move it forward -}
+  | fst a                                                 = snd a
+  {- Otherwise, try and move cow forwards (to make it less likely to be blocked) -}
+  | fst b                                                 = snd b
+  {- Otherwise, try and capture an opposing bean nearest to your end of the board by moving forwards or sideways, prefering to move forward -}
+  | fst c                                                 = snd b
+  where a = moveFurthestBackBeanForward h BluePlayer 
+        b = moveFurthestBackCowForward h BluePlayer
+        c = captureOpposingBean h BluePlayer
+  
+moveFurthestBackBeanForward :: Board -> Player -> (Bool, (Coord, Coord))
+moveFurthestBackBeanForward b BluePlayer 
+  | balance b < 0 && beanForwardMoves /= []          = (True, head beanForwardMoves)
+  | otherwise                                                     = (False, ((0, 0), (0, 0)))
+  where beanForwardMoves = [ ((x, y), (x, y + 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y + 1) `elem` validBeanMoves b BluePlayer (x, y)] 
+
+moveFurthestBackCowForward :: Board -> Player -> (Bool, (Coord, Coord))
+moveFurthestBackCowForward b BluePlayer 
+  | cowForwardMoves /= []          = (True, head cowForwardMoves)
+  | otherwise                                                     = (False, ((0, 0), (0, 0)))
+  where cowForwardMoves = [ ((x, y), (x, y + 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y + 1) `elem` validCowMoves b (x, y)] 
+
+captureOpposingBean :: Board -> Player -> (Bool, (Coord, Coord))
+captureOpposingBean b BluePlayer
+  | captureForwardsMoves /= 0     = (True, head captureForwardsMoves)
+  | captureEastMoves /= 0         = (True, head captureEastMoves)
+  | captureWestMoves /= 0         = (True, head captureWestMoves)
+  | otherwise                     = (False, ((0, 0), (0, 0)))
+  where captureForwardsMoves = [ ((x, y), (x, y + 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y + 1) `elem` validBeanMoves b BluePlayer (x, y) && getPiece (x, y+1) == Red Bean ]
+        captureEastMoves = [((x, y), (x + 1, y)) | (x + 1, y) `elem` validBeanMoves b BluePlayer (x, y) && getPiece (x + 1, y) == Red Bean]
+        captureWestMoves = [((x, y), (x - 1, y)) | (x - 1, y) `elem` validBeanMoves b BluePlayer (x, y) && getPiece (x - 1, y) == Red Bean]
