@@ -302,45 +302,84 @@ gameIsWon b RedPlayer = or [ pieceIsRedBlockedCow b (x, y) | x <- [0, 1, 2, 3], 
   Given the history of the game as a (nonempty) list, the AI should return an 
   appropriate next move as a pair (from, to).
 
+  NOTE: This work-in-progress code doesn't work
+  unfortunatly as I had a lot of trouble figuring out why the code
+  wasn't doing what I thought it should be doing, despite there being no type errors.
+
   [JUSTIFY]
+  To find a good strategy for the game, I played a bunch of games and 
+  decided on a simple strategy the AI could use. The heuristic I used was 'balance' - if you had more
+  beans than the other team, then you should focus on capturing the other team's cows by moving your beans
+  forward; otherwise, you should move 
+  any cows that you can forwards to make them harder to trap; if you can't do that then you should try and 
+  capture the other team's pieces so you have a greater proportion of beans.
+
+  The approach I attempted used guards to check if these predicates held - e.g. if the player was more beans than
+  the opposing team, and they can move a bean forward. I could have used if-else statements here, but I found guards 
+  more readable. 
+
+  I was going to use top-level patten matching to define each type of move based on whether it was the Red or Blue player's move -
+  which is neccassary as, for example, forwards movement is the opposite direction for the Red player than the Blue player.
+
+  I used list comprehensions to generate lists of possible moves. 
 -}
 nextMove :: [Board] -> Player -> (Coord, Coord)
 nextMove b p = case p of
-  BluePlayer -> nextMoveBlue b h
+  BluePlayer -> nextMoveBlue b (head b)
   RedPlayer -> ((1, 1), (1, 2))
   where
     h = head b
 
 nextMoveBlue :: [Board] -> Board -> (Coord, Coord)
 nextMoveBlue b h 
-  {- If blue has more beans, pick whichever bean is furthest back and try to move it forward -}
-  | fst a                                                 = snd a
+  {- If blue has more beans, pick whichever bean is furthest back that can move forwards, and move it forwards -}
+  | fst j == True                                               = snd j
   {- Otherwise, try and move cow forwards (to make it less likely to be blocked) -}
-  | fst b                                                 = snd b
+  | fst k == True                                            = snd k
   {- Otherwise, try and capture an opposing bean nearest to your end of the board by moving forwards or sideways, prefering to move forward -}
-  | fst c                                                 = snd b
-  where a = moveFurthestBackBeanForward h BluePlayer 
-        b = moveFurthestBackCowForward h BluePlayer
-        c = captureOpposingBean h BluePlayer
+  | fst l == True                                             = snd l
+  {- Otherwise, move your furthest back piece either sideways or backwards (that can move), preffering sideways-}
+  | otherwise                                             = moveFurthestBackPiece h BluePlayer
+  where j = moveFurthestBackBeanForward h BluePlayer 
+        k = moveFurthestBackCowForward h BluePlayer
+        l = captureOpposingBean h BluePlayer
+        
   
 moveFurthestBackBeanForward :: Board -> Player -> (Bool, (Coord, Coord))
 moveFurthestBackBeanForward b BluePlayer 
-  | balance b < 0 && beanForwardMoves /= []          = (True, head beanForwardMoves)
+  | balance b <= 0 && beanForwardMoves /= []          = (True, (head beanForwardMoves))
   | otherwise                                                     = (False, ((0, 0), (0, 0)))
-  where beanForwardMoves = [ ((x, y), (x, y + 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y + 1) `elem` validBeanMoves b BluePlayer (x, y)] 
+  where beanForwardMoves = [ ((x, y), (x, y - 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y - 1) `elem` validBeanMoves b BluePlayer (x, y)] 
 
 moveFurthestBackCowForward :: Board -> Player -> (Bool, (Coord, Coord))
 moveFurthestBackCowForward b BluePlayer 
   | cowForwardMoves /= []          = (True, head cowForwardMoves)
   | otherwise                                                     = (False, ((0, 0), (0, 0)))
-  where cowForwardMoves = [ ((x, y), (x, y + 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y + 1) `elem` validCowMoves b (x, y)] 
+  where cowForwardMoves = [ ((x, y), (x, y - 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y - 1) `elem` validCowMoves b (x, y)] 
 
 captureOpposingBean :: Board -> Player -> (Bool, (Coord, Coord))
 captureOpposingBean b BluePlayer
-  | captureForwardsMoves /= 0     = (True, head captureForwardsMoves)
-  | captureEastMoves /= 0         = (True, head captureEastMoves)
-  | captureWestMoves /= 0         = (True, head captureWestMoves)
+  | captureForwardsMoves /= []    = (True, head captureForwardsMoves)
+  | captureEastMoves /= []       = (True, head captureEastMoves)
+  | captureWestMoves /= []        = (True, head captureWestMoves)
   | otherwise                     = (False, ((0, 0), (0, 0)))
-  where captureForwardsMoves = [ ((x, y), (x, y + 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y + 1) `elem` validBeanMoves b BluePlayer (x, y) && getPiece (x, y+1) == Red Bean ]
-        captureEastMoves = [((x, y), (x + 1, y)) | (x + 1, y) `elem` validBeanMoves b BluePlayer (x, y) && getPiece (x + 1, y) == Red Bean]
-        captureWestMoves = [((x, y), (x - 1, y)) | (x - 1, y) `elem` validBeanMoves b BluePlayer (x, y) && getPiece (x - 1, y) == Red Bean]
+  where captureForwardsMoves = [ ((x, y), (x, y - 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], ((x, y - 1) `elem` validBeanMoves b BluePlayer (x, y)), getPiece b (x, y-1) == Just (Red Bean) ]
+        captureEastMoves = [((x, y), (x + 1, y)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], ((x + 1, y) `elem` validBeanMoves b BluePlayer (x, y)), getPiece b (x + 1, y) == Just (Red Bean)]
+        captureWestMoves = [((x, y), (x - 1, y)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], ((x - 1, y) `elem` validBeanMoves b BluePlayer (x, y)),getPiece b (x - 1, y) == Just (Red Bean)]
+
+moveFurthestBackPiece :: Board -> Player -> (Coord, Coord)
+moveFurthestBackPiece b BluePlayer
+  | forwardBeanMoves /= []               = head forwardBeanMoves
+  | eastBeanMoves /= []           = head eastBeanMoves
+  | westBeanMoves /= []          = head westBeanMoves
+  | eastCowMoves /= []                  = head eastCowMoves
+  | westCowMoves /= []                = head westCowMoves
+  | backwardsBeanMoves /= []          = head backwardsBeanMoves
+  | otherwise                       = head backwardsCowMoves
+  where forwardBeanMoves = [ ((x, y), (x, y - 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y - 1) `elem` validBeanMoves b BluePlayer (x, y)] 
+        eastBeanMoves = [ ((x, y), (x + 1, y)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x + 1, y) `elem` validBeanMoves b BluePlayer (x, y) ]
+        westBeanMoves = [ ((x, y), (x - 1, y)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x - 1, y) `elem` validBeanMoves b BluePlayer (x, y) ]
+        eastCowMoves = [ ((x, y), (x + 1, y)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x + 1, y) `elem` validCowMoves b (x, y) ]
+        westCowMoves = [ ((x, y), (x - 1, y)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x - 1, y) `elem` validCowMoves b (x, y) ]
+        backwardsBeanMoves = [ ((x, y), (x, y + 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y + 1) `elem` validBeanMoves b BluePlayer (x, y)]
+        backwardsCowMoves = [ ((x, y), (x, y + 1)) | x <- [0, 1, 2, 3], y <- [0, 1, 2, 3], (x, y + 1) `elem` validCowMoves b (x, y)] 
