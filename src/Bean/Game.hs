@@ -42,11 +42,16 @@ startingPos =
   recursion and pattern matching in your definition.
 
   [JUSTIFY]
-
-  RED - BLUE
+  To implement this function, 
 -}
 balance :: Board -> Int
-balance = error "Not implemented"
+balance b = snd (countBeans ((concat b), 0))
+
+countBeans :: ([Piece], Int) -> ([Piece], Int)
+countBeans ((Red Bean : xs), b) = countBeans (xs, b + 1)
+countBeans ((Blue Bean : xs), b) = countBeans (xs, b - 1)
+countBeans ( (_ : xs), b) =  countBeans (xs, b)
+countBeans ([], b) = ([], b)
 
 
 {-| 
@@ -249,6 +254,16 @@ gameIsDrawn b
   is, determine whether the game is won by the opponent.
 
   [JUSTIFY]
+  For the gameIsWon function, I used list comprehensions, as this seemed like the best way
+  to iterate through all the possible x and y values of the board, which were needed for the 
+  various functions to test if the peices iterated through were cows, and if so, if they were blocked.
+
+  I make seperate 'pieceIsBlueBlockedCow' and 'pieceIsRedBlockedCow' functions to make the list comprehensions
+  less long, and therefore more readable.
+
+  The or function at the end returns True if any of the values in the generated list are true i.e. if any of the pieces
+  on the board are blocked cows of the specified color. This function is a little inefficient as the list will keep
+  generating even after a blocked cow is found, and could be improved in future iterations.
 
 -}
 
